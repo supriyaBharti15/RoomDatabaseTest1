@@ -1,5 +1,6 @@
 package com.example.roomdatabasetest1.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -18,6 +19,7 @@ public class EditActivity extends AppCompatActivity {
     EditText name, email, city, pincode, phone;
     Button save;
     AppDatabase database;
+    private int recordID;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -32,6 +34,24 @@ public class EditActivity extends AppCompatActivity {
         pincode = findViewById(R.id.edit_pincode);
         save = findViewById(R.id.addButton);
 
+        //code to get intent for edit request
+        Intent intent = getIntent();
+        if (intent != null && intent.hasExtra("update")) {
+            save.setText("Update");
+            recordID = intent.getIntExtra("update", -1);
+            AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                @Override
+                public void run() {
+                    Person person = database.personDao().getDataByID(recordID);
+                    name.setText(person.getName());
+                    email.setText(person.getEmail());
+                    city.setText(person.getCity());
+                    pincode.setText(person.getPincode());
+                    phone.setText(person.getPhoneNumber());
+                }
+            });
+        }
+
         //database
         database = AppDatabase.getDatabaseInstance(this);
 
@@ -40,15 +60,18 @@ public class EditActivity extends AppCompatActivity {
             public void onClick(View v) {
                 final Person person = new Person(name.getText().toString(), email.getText().toString(),
                         pincode.getText().toString(), city.getText().toString(), phone.getText().toString());
-                if (save.getText().toString().equalsIgnoreCase("save")) {
-                    AppExecutors.getInstance().diskIO().execute(new Runnable() {
-                        @Override
-                        public void run() {
+                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (save.getText().toString().equalsIgnoreCase("save")) {
                             database.personDao().insertInDB(person);
-                            finish();
+                        } else {
+                            person.setPrimaryKey(recordID);
+                            database.personDao().updateDataInDB(person);
                         }
-                    });
-                }
+                        finish();
+                    }
+                });
             }
         });
     }

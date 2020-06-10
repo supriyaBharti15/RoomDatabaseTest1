@@ -14,6 +14,7 @@ import com.example.roomdatabasetest1.R;
 import com.example.roomdatabasetest1.adapter.MyPersonAdapter;
 import com.example.roomdatabasetest1.database.AppDatabase;
 import com.example.roomdatabasetest1.database.AppExecutors;
+import com.example.roomdatabasetest1.listener.DeleteClickListeners;
 import com.example.roomdatabasetest1.model.Person;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements DeleteClickListeners {
     private FloatingActionButton addBtn;
     private AppDatabase database;
     private RecyclerView recyclerView;
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         addBtn = findViewById(R.id.addPerson);
         recyclerView = findViewById(R.id.recyclerView);
+        MyPersonAdapter.onDeleteClickListener(this);
         addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -69,5 +71,16 @@ public class MainActivity extends AppCompatActivity {
         LinearLayoutManager manager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(manager);
         recyclerView.setAdapter(adapter);
+    }
+
+    @Override
+    public void onDeleteButtonClick(final int itemKey) {
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                database.personDao().deleteFromDB(itemKey);
+                retrieveDataFromDB();
+            }
+        });
     }
 }
